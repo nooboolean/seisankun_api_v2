@@ -1,18 +1,19 @@
 package main
 
 import (
-	"net/http"
+	"fmt"
 
-	"github.com/gin-gonic/gin"
+	"github.com/nooboolean/seisankun_api_v2/config"
+	"github.com/nooboolean/seisankun_api_v2/db"
 )
 
 func main() {
-	router := gin.Default()
+	dbm := db.NewDatabaseManager()
+	dbm.Connect()
+	defer dbm.Close()
 
-	v2 := router.Group("api/v2")
-	v2.GET("/hello", func(c *gin.Context) {
-		c.String(http.StatusOK, "Hello World!!")
-	})
-
-	router.Run(":3000")
+	if err := config.Start(); err != nil {
+		fmt.Printf("%v¥n", err)
+		return
+	}
 }
