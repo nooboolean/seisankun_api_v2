@@ -19,6 +19,9 @@ func openAPI(app *gin.Engine) {
 	openApiGroup := app.Group("/v2")
 	travelController := controllers.NewTravelController(NewSqlHandler())
 	memberController := controllers.NewMemberController(NewSqlHandler())
+	paymentController := controllers.NewPaymentController(NewSqlHandler())
+	borrowingController := controllers.NewBorrowingController(NewSqlHandler())
+	calculationController := controllers.NewCalculationController(NewSqlHandler())
 
 	openApiGroup.GET("/travel", travelController.Show)
 	openApiGroup.POST("/travel", travelController.Create)
@@ -27,6 +30,17 @@ func openAPI(app *gin.Engine) {
 
 	openApiGroup.POST("/member", memberController.Create)
 	openApiGroup.DELETE("/member", memberController.Delete)
+
+	openApiGroup.GET("/payment", paymentController.Show)
+	openApiGroup.GET("/payment/history", paymentController.Index)
+	openApiGroup.POST("/payment", paymentController.Create)
+	openApiGroup.PUT("/payment", paymentController.Update)
+	openApiGroup.DELETE("/payment", paymentController.Delete)
+
+	openApiGroup.GET("/borrowing/statuses", borrowingController.Show)
+	openApiGroup.GET("/borrowing/history", borrowingController.Index)
+
+	openApiGroup.GET("/calculation/results", calculationController.Index)
 }
 
 func authAPI(app *gin.Engine) {

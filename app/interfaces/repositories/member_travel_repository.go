@@ -2,6 +2,7 @@ package repositories
 
 import (
 	"database/sql"
+	"time"
 
 	"github.com/nooboolean/seisankun_api_v2/domain"
 )
@@ -34,14 +35,42 @@ func (r *MemberTravelRepository) Store(memberTravel domain.MemberTravel) error {
 	return r.Create(&memberTravel).Error
 }
 
-func (r *MemberTravelRepository) DeleteList(memberTravelList domain.MemberTravelList) error {
-	memberTravelListIds := []int{}
-	for _, memberTravel := range memberTravelList {
-		memberTravelListIds = append(memberTravelListIds, int(memberTravel.ID))
+func (r *MemberTravelRepository) DeleteList(member_travel_list domain.MemberTravelList) (err error) {
+	deleted_member_travel_list := make(domain.DeletedMemberTravelList, 0, len(member_travel_list))
+	deleted_at := time.Now()
+	for _, member_travel := range member_travel_list {
+		deleted_member_travel := domain.DeletedMemberTravel{
+			ID:        member_travel.ID,
+			MemberId:  member_travel.MemberId,
+			TravelId:  member_travel.TravelId,
+			CreatedAt: member_travel.CreatedAt,
+			DeletedAt: deleted_at,
+		}
+		deleted_member_travel_list = append(deleted_member_travel_list, deleted_member_travel)
 	}
-	return r.Where("id IN (?)", memberTravelListIds).Delete(&domain.MemberTravel{}).Error
+	err = r.Create(&deleted_member_travel_list).Error
+	if err != nil {
+		return
+	}
+	member_travel_list_ids := []int{}
+	for _, member_travel := range member_travel_list {
+		member_travel_list_ids = append(member_travel_list_ids, int(member_travel.ID))
+	}
+	return r.Where("id IN (?)", member_travel_list_ids).Delete(&domain.MemberTravel{}).Error
 }
 
-func (r *MemberTravelRepository) Delete(member_travel domain.MemberTravel) error {
+func (r *MemberTravelRepository) Delete(member_travel domain.MemberTravel) (err error) {
+	deleted_member_travel := domain.DeletedMemberTravel{
+		ID:        member_travel.ID,
+		MemberId:  member_travel.MemberId,
+		TravelId:  member_travel.TravelId,
+		CreatedAt: member_travel.CreatedAt,
+		DeletedAt: time.Now(),
+	}
+	err = r.Create(&deleted_member_travel).Error
+	if err != nil {
+		return
+	}
+
 	return r.Model(&member_travel).Delete(&member_travel).Error
 }

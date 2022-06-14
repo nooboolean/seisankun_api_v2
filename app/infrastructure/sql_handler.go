@@ -82,3 +82,7 @@ func (handler *SqlHandler) Model(value interface{}) *gorm.DB {
 func (handler *SqlHandler) Preload(column string, conditions ...interface{}) *gorm.DB {
 	return handler.Conn.Preload(column, conditions...)
 }
+
+func (handler *SqlHandler) Debug() *gorm.DB {
+	return handler.Conn.Debug()
+}

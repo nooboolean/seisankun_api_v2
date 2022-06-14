@@ -2,19 +2,15 @@ package usecases
 
 import (
 	"math/rand"
-	"time"
 
 	"github.com/nooboolean/seisankun_api_v2/domain"
 	"github.com/nooboolean/seisankun_api_v2/interfaces/repositories"
 )
 
 type TravelInteractor struct {
-	TravelRepository              *repositories.TravelRepository
-	DeletedTravelRepository       *repositories.DeletedTravelRepository
-	MemberRepository              *repositories.MemberRepository
-	DeletedMemberRepository       *repositories.DeletedMemberRepository
-	MemberTravelRepository        *repositories.MemberTravelRepository
-	DeletedMemberTravelRepository *repositories.DeletedMemberTravelRepository
+	TravelRepository       *repositories.TravelRepository
+	MemberRepository       *repositories.MemberRepository
+	MemberTravelRepository *repositories.MemberTravelRepository
 }
 
 func (i *TravelInteractor) Get(travel_key string) (travel domain.Travel, members domain.Members, err error) {
@@ -77,37 +73,12 @@ func (i *TravelInteractor) Delete(travel_key string) (err error) {
 		return
 	}
 
-	deleted_member_travel_list := make(domain.DeletedMemberTravelList, 0, len(member_travel_list))
-	deleted_at := time.Now()
-	for _, member_travel := range member_travel_list {
-		deleted_member_travel := domain.DeletedMemberTravel{
-			ID:        member_travel.ID,
-			MemberId:  member_travel.MemberId,
-			TravelId:  member_travel.TravelId,
-			CreatedAt: member_travel.CreatedAt,
-			DeletedAt: deleted_at,
-		}
-		deleted_member_travel_list = append(deleted_member_travel_list, deleted_member_travel)
-	}
-	err = i.DeletedMemberTravelRepository.StoreList(deleted_member_travel_list)
-	if err != nil {
-		return
-	}
-
+	// NOTE: member_travelのmember_idやtravel_idに外部キー制約がかかっているので、先に削除の必要あり
 	err = i.MemberTravelRepository.DeleteList(member_travel_list)
 	if err != nil {
 		return
 	}
-
-	err = i.DeletedTravelRepository.Store(travel)
-	if err != nil {
-		return
-	}
-	err = i.TravelRepository.Delete(travel.TravelKey)
-	if err != nil {
-		return
-	}
-	err = i.DeletedMemberRepository.StoreMembers(members)
+	err = i.TravelRepository.Delete(travel)
 	if err != nil {
 		return
 	}

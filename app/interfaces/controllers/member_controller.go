@@ -25,13 +25,7 @@ func NewMemberController(sqlHandler repositories.SqlHandler) *memberController {
 			MemberRepository: &repositories.MemberRepository{
 				SqlHandler: sqlHandler,
 			},
-			DeletedMemberRepository: &repositories.DeletedMemberRepository{
-				SqlHandler: sqlHandler,
-			},
 			MemberTravelRepository: &repositories.MemberTravelRepository{
-				SqlHandler: sqlHandler,
-			},
-			DeletedMemberTravelRepository: &repositories.DeletedMemberTravelRepository{
 				SqlHandler: sqlHandler,
 			},
 		},

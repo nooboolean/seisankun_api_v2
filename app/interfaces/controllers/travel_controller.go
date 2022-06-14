@@ -22,19 +22,10 @@ func NewTravelController(sqlHandler repositories.SqlHandler) *travelController {
 			TravelRepository: &repositories.TravelRepository{
 				SqlHandler: sqlHandler,
 			},
-			DeletedTravelRepository: &repositories.DeletedTravelRepository{
-				SqlHandler: sqlHandler,
-			},
 			MemberRepository: &repositories.MemberRepository{
 				SqlHandler: sqlHandler,
 			},
-			DeletedMemberRepository: &repositories.DeletedMemberRepository{
-				SqlHandler: sqlHandler,
-			},
 			MemberTravelRepository: &repositories.MemberTravelRepository{
-				SqlHandler: sqlHandler,
-			},
-			DeletedMemberTravelRepository: &repositories.DeletedMemberTravelRepository{
 				SqlHandler: sqlHandler,
 			},
 		},

@@ -16,4 +16,5 @@ type SqlHandler interface {
 	Joins(string, ...interface{}) *gorm.DB
 	Model(interface{}) *gorm.DB
 	Preload(string, ...interface{}) *gorm.DB
+	Debug() *gorm.DB
 }
