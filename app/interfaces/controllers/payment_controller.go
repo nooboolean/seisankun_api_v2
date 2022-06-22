@@ -4,6 +4,7 @@ import (
 	"net/http"
 
 	"github.com/nooboolean/seisankun_api_v2/domain"
+	"github.com/nooboolean/seisankun_api_v2/domain/codes"
 	payment_history_requests "github.com/nooboolean/seisankun_api_v2/interfaces/controllers/requests/payment_history"
 	payment_requests "github.com/nooboolean/seisankun_api_v2/interfaces/controllers/requests/payments"
 	"github.com/nooboolean/seisankun_api_v2/interfaces/controllers/responses/errors"
@@ -28,6 +29,9 @@ func NewPaymentController(sqlHandler repositories.SqlHandler) *paymentController
 			MemberRepository: &repositories.MemberRepository{
 				SqlHandler: sqlHandler,
 			},
+			MemberTravelRepository: &repositories.MemberTravelRepository{
+				SqlHandler: sqlHandler,
+			},
 			PaymentRepository: &repositories.PaymentRepository{
 				SqlHandler: sqlHandler,
 			},
@@ -41,13 +45,14 @@ func NewPaymentController(sqlHandler repositories.SqlHandler) *paymentController
 func (controller *paymentController) Show(c *gin.Context) {
 	var request payment_requests.PaymentGetRequest
 	if err := c.BindQuery(&request); err != nil {
-		c.JSON(http.StatusBadRequest, errors.StandardErrorResponse{Error: errors.Error{Message: "Bad Request.", Detail: err.Error()}})
+		err = domain.Errorf(codes.BadParams, "Bat Request Params - %s", err)
+		c.JSON(errors.ToHttpStatus(err), errors.StandardErrorResponse{Error: errors.Error{Message: err.Error()}})
 		return
 	}
 
 	travel_key, payment, borrowers, err := controller.Interactor.Get(request.PaymentId)
 	if err != nil {
-		c.JSON(http.StatusInternalServerError, errors.StandardErrorResponse{Error: errors.Error{Message: "Internal Server Error.", Detail: err.Error()}})
+		c.JSON(errors.ToHttpStatus(err), errors.StandardErrorResponse{Error: errors.Error{Message: err.Error()}})
 		return
 	}
 
@@ -69,13 +74,14 @@ func (controller *paymentController) Show(c *gin.Context) {
 func (controller *paymentController) Index(c *gin.Context) {
 	var request payment_history_requests.PaymentHistoryGetRequest
 	if err := c.BindQuery(&request); err != nil {
-		c.JSON(http.StatusBadRequest, errors.StandardErrorResponse{Error: errors.Error{Message: "Bad Request.", Detail: err.Error()}})
+		err = domain.Errorf(codes.BadParams, "Bat Request Params - %s", err)
+		c.JSON(errors.ToHttpStatus(err), errors.StandardErrorResponse{Error: errors.Error{Message: err.Error()}})
 		return
 	}
 
 	payments, err := controller.Interactor.GetPayments(request.TravelKey)
 	if err != nil {
-		c.JSON(http.StatusInternalServerError, errors.StandardErrorResponse{Error: errors.Error{Message: "Internal Server Error.", Detail: err.Error()}})
+		c.JSON(errors.ToHttpStatus(err), errors.StandardErrorResponse{Error: errors.Error{Message: err.Error()}})
 		return
 	}
 
@@ -100,7 +106,8 @@ func (controller *paymentController) Index(c *gin.Context) {
 func (controller *paymentController) Create(c *gin.Context) {
 	var request payment_requests.PaymentPostRequest
 	if err := c.BindJSON(&request); err != nil {
-		c.JSON(http.StatusBadRequest, errors.StandardErrorResponse{Error: errors.Error{Message: "Bad Request.", Detail: err.Error()}})
+		err = domain.Errorf(codes.BadParams, "Bat Request Params - %s", err)
+		c.JSON(errors.ToHttpStatus(err), errors.StandardErrorResponse{Error: errors.Error{Message: err.Error()}})
 		return
 	}
 
@@ -120,7 +127,7 @@ func (controller *paymentController) Create(c *gin.Context) {
 
 	payment_id, err := controller.Interactor.Register(request.Payment.TravelKey, payment, borrow_money_list)
 	if err != nil {
-		c.JSON(http.StatusInternalServerError, errors.StandardErrorResponse{Error: errors.Error{Message: "Internal Server Error.", Detail: err.Error()}})
+		c.JSON(errors.ToHttpStatus(err), errors.StandardErrorResponse{Error: errors.Error{Message: err.Error()}})
 		return
 	}
 
@@ -131,7 +138,8 @@ func (controller *paymentController) Create(c *gin.Context) {
 func (controller *paymentController) Update(c *gin.Context) {
 	var request payment_requests.PaymentPutRequest
 	if err := c.BindJSON(&request); err != nil {
-		c.JSON(http.StatusBadRequest, errors.StandardErrorResponse{Error: errors.Error{Message: "Bad Request.", Detail: err.Error()}})
+		err = domain.Errorf(codes.BadParams, "Bat Request Params - %s", err)
+		c.JSON(errors.ToHttpStatus(err), errors.StandardErrorResponse{Error: errors.Error{Message: err.Error()}})
 		return
 	}
 
@@ -152,7 +160,7 @@ func (controller *paymentController) Update(c *gin.Context) {
 
 	payment_id, err := controller.Interactor.Update(request.Payment.TravelKey, payment, borrow_money_list)
 	if err != nil {
-		c.JSON(http.StatusInternalServerError, errors.StandardErrorResponse{Error: errors.Error{Message: "Internal Server Error.", Detail: err.Error()}})
+		c.JSON(errors.ToHttpStatus(err), errors.StandardErrorResponse{Error: errors.Error{Message: err.Error()}})
 		return
 	}
 
@@ -163,13 +171,14 @@ func (controller *paymentController) Update(c *gin.Context) {
 func (controller *paymentController) Delete(c *gin.Context) {
 	var request payment_requests.PaymentDeleteRequest
 	if err := c.BindQuery(&request); err != nil {
-		c.JSON(http.StatusBadRequest, errors.StandardErrorResponse{Error: errors.Error{Message: "Bad Request.", Detail: err.Error()}})
+		err = domain.Errorf(codes.BadParams, "Bat Request Params - %s", err)
+		c.JSON(errors.ToHttpStatus(err), errors.StandardErrorResponse{Error: errors.Error{Message: err.Error()}})
 		return
 	}
 
 	err := controller.Interactor.Delete(request.PaymentId)
 	if err != nil {
-		c.JSON(http.StatusInternalServerError, errors.StandardErrorResponse{Error: errors.Error{Message: "Internal Server Error.", Detail: err.Error()}})
+		c.JSON(errors.ToHttpStatus(err), errors.StandardErrorResponse{Error: errors.Error{Message: err.Error()}})
 		return
 	}
 

@@ -3,6 +3,8 @@ package controllers
 import (
 	"net/http"
 
+	"github.com/nooboolean/seisankun_api_v2/domain"
+	"github.com/nooboolean/seisankun_api_v2/domain/codes"
 	requestsTravels "github.com/nooboolean/seisankun_api_v2/interfaces/controllers/requests/travels"
 	"github.com/nooboolean/seisankun_api_v2/interfaces/controllers/responses/errors"
 	responsesTravels "github.com/nooboolean/seisankun_api_v2/interfaces/controllers/responses/travels"
@@ -28,6 +30,12 @@ func NewTravelController(sqlHandler repositories.SqlHandler) *travelController {
 			MemberTravelRepository: &repositories.MemberTravelRepository{
 				SqlHandler: sqlHandler,
 			},
+			PaymentRepository: &repositories.PaymentRepository{
+				SqlHandler: sqlHandler,
+			},
+			BorrowMoneyRepository: &repositories.BorrowMoneyRepository{
+				SqlHandler: sqlHandler,
+			},
 		},
 	}
 }
@@ -35,14 +43,15 @@ func NewTravelController(sqlHandler repositories.SqlHandler) *travelController {
 func (controller *travelController) Show(c *gin.Context) {
 	var request requestsTravels.TravelGetRequest
 	if err := c.BindQuery(&request); err != nil {
-		c.JSON(http.StatusBadRequest, errors.StandardErrorResponse{Error: errors.Error{Message: "Bad Request.", Detail: err.Error()}})
+		err = domain.Errorf(codes.BadParams, "Bat Request Params - %s", err)
+		c.JSON(errors.ToHttpStatus(err), errors.StandardErrorResponse{Error: errors.Error{Message: err.Error()}})
 		return
 	}
 
 	travelKey := request.TravelKey
 	travel, members, err := controller.Interactor.Get(travelKey)
 	if err != nil {
-		c.JSON(http.StatusInternalServerError, errors.StandardErrorResponse{Error: errors.Error{Message: "Internal Server Error.", Detail: err.Error()}})
+		c.JSON(errors.ToHttpStatus(err), errors.StandardErrorResponse{Error: errors.Error{Message: err.Error()}})
 		return
 	}
 
@@ -53,13 +62,14 @@ func (controller *travelController) Show(c *gin.Context) {
 func (controller *travelController) Create(c *gin.Context) {
 	var request requestsTravels.TravelPostRequest
 	if err := c.BindJSON(&request); err != nil {
-		c.JSON(http.StatusBadRequest, errors.StandardErrorResponse{Error: errors.Error{Message: "Bad Request.", Detail: err.Error()}})
+		err = domain.Errorf(codes.BadParams, "Bat Request Params - %s", err)
+		c.JSON(errors.ToHttpStatus(err), errors.StandardErrorResponse{Error: errors.Error{Message: err.Error()}})
 		return
 	}
 
 	travelKey, err := controller.Interactor.Register(request.Members, request.Travel)
 	if err != nil {
-		c.JSON(http.StatusInternalServerError, errors.StandardErrorResponse{Error: errors.Error{Message: "Internal Server Error.", Detail: err.Error()}})
+		c.JSON(errors.ToHttpStatus(err), errors.StandardErrorResponse{Error: errors.Error{Message: err.Error()}})
 		return
 	}
 
@@ -70,13 +80,14 @@ func (controller *travelController) Create(c *gin.Context) {
 func (controller *travelController) Update(c *gin.Context) {
 	var request requestsTravels.TravelPutRequest
 	if err := c.BindJSON(&request); err != nil {
-		c.JSON(http.StatusBadRequest, errors.StandardErrorResponse{Error: errors.Error{Message: "Bad Request.", Detail: err.Error()}})
+		err = domain.Errorf(codes.BadParams, "Bat Request Params - %s", err)
+		c.JSON(errors.ToHttpStatus(err), errors.StandardErrorResponse{Error: errors.Error{Message: err.Error()}})
 		return
 	}
 
 	travel, err := controller.Interactor.Update(request.Travel)
 	if err != nil {
-		c.JSON(http.StatusInternalServerError, errors.StandardErrorResponse{Error: errors.Error{Message: "Internal Server Error.", Detail: err.Error()}})
+		c.JSON(errors.ToHttpStatus(err), errors.StandardErrorResponse{Error: errors.Error{Message: err.Error()}})
 		return
 	}
 
@@ -87,13 +98,14 @@ func (controller *travelController) Update(c *gin.Context) {
 func (controller *travelController) Delete(c *gin.Context) {
 	var request requestsTravels.TravelDeleteRequest
 	if err := c.BindQuery(&request); err != nil {
-		c.JSON(http.StatusBadRequest, errors.StandardErrorResponse{Error: errors.Error{Message: "Bad Request.", Detail: err.Error()}})
+		err = domain.Errorf(codes.BadParams, "Bat Request Params - %s", err)
+		c.JSON(errors.ToHttpStatus(err), errors.StandardErrorResponse{Error: errors.Error{Message: err.Error()}})
 		return
 	}
 
 	err := controller.Interactor.Delete(request.TravelKey)
 	if err != nil {
-		c.JSON(http.StatusInternalServerError, errors.StandardErrorResponse{Error: errors.Error{Message: "Internal Server Error.", Detail: err.Error()}})
+		c.JSON(errors.ToHttpStatus(err), errors.StandardErrorResponse{Error: errors.Error{Message: err.Error()}})
 		return
 	}
 

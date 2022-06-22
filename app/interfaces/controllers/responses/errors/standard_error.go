@@ -6,5 +6,4 @@ type StandardErrorResponse struct {
 
 type Error struct {
 	Message string `json:"message"`
-	Detail  string `json:"detail"`
 }

@@ -3,6 +3,8 @@ package controllers
 import (
 	"net/http"
 
+	"github.com/nooboolean/seisankun_api_v2/domain"
+	"github.com/nooboolean/seisankun_api_v2/domain/codes"
 	requests "github.com/nooboolean/seisankun_api_v2/interfaces/controllers/requests/members"
 	"github.com/nooboolean/seisankun_api_v2/interfaces/controllers/responses/errors"
 	responses "github.com/nooboolean/seisankun_api_v2/interfaces/controllers/responses/members"
@@ -35,13 +37,14 @@ func NewMemberController(sqlHandler repositories.SqlHandler) *memberController {
 func (controller *memberController) Create(c *gin.Context) {
 	var request requests.MemberPostRequest
 	if err := c.BindJSON(&request); err != nil {
-		c.JSON(http.StatusBadRequest, errors.StandardErrorResponse{Error: errors.Error{Message: "Bad Request.", Detail: err.Error()}})
+		err = domain.Errorf(codes.BadParams, "Bat Request Params - %s", err)
+		c.JSON(errors.ToHttpStatus(err), errors.StandardErrorResponse{Error: errors.Error{Message: err.Error()}})
 		return
 	}
 
 	member_id, err := controller.Interactor.Register(request.Travel.TravelKey, request.Member)
 	if err != nil {
-		c.JSON(http.StatusInternalServerError, errors.StandardErrorResponse{Error: errors.Error{Message: "Internal Server Error.", Detail: err.Error()}})
+		c.JSON(errors.ToHttpStatus(err), errors.StandardErrorResponse{Error: errors.Error{Message: err.Error()}})
 		return
 	}
 
@@ -52,13 +55,14 @@ func (controller *memberController) Create(c *gin.Context) {
 func (controller *memberController) Delete(c *gin.Context) {
 	var request requests.MemberDeleteRequest
 	if err := c.BindQuery(&request); err != nil {
-		c.JSON(http.StatusBadRequest, errors.StandardErrorResponse{Error: errors.Error{Message: "Bad Request.", Detail: err.Error()}})
+		err = domain.Errorf(codes.BadParams, "Bat Request Params - %s", err)
+		c.JSON(errors.ToHttpStatus(err), errors.StandardErrorResponse{Error: errors.Error{Message: err.Error()}})
 		return
 	}
 
 	err := controller.Interactor.Delete(request.MemberId)
 	if err != nil {
-		c.JSON(http.StatusInternalServerError, errors.StandardErrorResponse{Error: errors.Error{Message: "Internal Server Error.", Detail: err.Error()}})
+		c.JSON(errors.ToHttpStatus(err), errors.StandardErrorResponse{Error: errors.Error{Message: err.Error()}})
 		return
 	}
 

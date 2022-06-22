@@ -1,9 +1,12 @@
 package repositories
 
 import (
+	"errors"
 	"time"
 
 	"github.com/nooboolean/seisankun_api_v2/domain"
+	"github.com/nooboolean/seisankun_api_v2/domain/codes"
+	"gorm.io/gorm"
 )
 
 type MemberRepository struct {
@@ -14,24 +17,31 @@ func (r *MemberRepository) FindByTravelKey(travel_key string) (members domain.Me
 	if err = r.Model(&domain.Member{}).Joins(`
 																					LEFT JOIN member_travel ON member_travel.member_id = members.id
 																					LEFT JOIN travels ON member_travel.travel_id = travels.id
-																	`).Where("travels.travel_key = ?", travel_key).Scan(&members).Error; err != nil {
+																	`).Where("travels.travel_key = ?", travel_key).Find(&members).Error; err != nil {
+		err = domain.Errorf(codes.Database, "Failed to find member  - %s", err)
 		return
 	}
 	return
 }
 
 func (r *MemberRepository) FindByTravelKeyWithBorrowMoneyListAndPayments(travel_key string) (members domain.Members, err error) {
-	if err = r.Debug().Preload("BorrowMoneyList").Preload("Payments").Joins(`
+	if err = r.Preload("BorrowMoneyList").Preload("Payments").Joins(`
 																					LEFT JOIN member_travel ON member_travel.member_id = members.id
 																					LEFT JOIN travels ON member_travel.travel_id = travels.id
 																	`).Where("travels.travel_key = ?", travel_key).Find(&members).Error; err != nil {
+		err = domain.Errorf(codes.Database, "Failed to find member  - %s", err)
 		return
 	}
 	return
 }
 
-func (r *MemberRepository) FindByMemberIdWithBorrowMoneyListAndPayments(member_id int) (member domain.Member, err error) {
-	if err = r.Debug().Preload("BorrowMoneyList").Preload("Payments").Where(domain.Member{ID: uint(member_id)}).Find(&member).Error; err != nil {
+func (r *MemberRepository) FindByIdWithBorrowMoneyListAndPayments(member_id int) (member domain.Member, err error) {
+	if err = r.Preload("BorrowMoneyList").Preload("Payments").Where(domain.Member{ID: uint(member_id)}).First(&member).Error; err != nil {
+		if errors.Is(err, gorm.ErrRecordNotFound) {
+			err = domain.Errorf(codes.NotFound, "Failed to find member - %s", err)
+			return
+		}
+		err = domain.Errorf(codes.Database, "Failed to find member  - %s", err)
 		return
 	}
 	return
@@ -39,6 +49,11 @@ func (r *MemberRepository) FindByMemberIdWithBorrowMoneyListAndPayments(member_i
 
 func (r *MemberRepository) FindById(id int) (member domain.Member, err error) {
 	if err = r.First(&member, id).Error; err != nil {
+		if errors.Is(err, gorm.ErrRecordNotFound) {
+			err = domain.Errorf(codes.NotFound, "Failed to find member - %s", err)
+			return
+		}
+		err = domain.Errorf(codes.Database, "Failed to find member  - %s", err)
 		return
 	}
 	return
@@ -47,7 +62,8 @@ func (r *MemberRepository) FindById(id int) (member domain.Member, err error) {
 func (r *MemberRepository) FindByPaymentId(payment_id int) (members domain.Members, err error) {
 	if err = r.Model(&domain.Member{}).Joins(`
 																					LEFT JOIN borrow_money ON borrow_money.borrower_id = members.id
-																	`).Where("borrow_money.payment_id = ?", payment_id).Scan(&members).Error; err != nil {
+																	`).Where("borrow_money.payment_id = ?", payment_id).Find(&members).Error; err != nil {
+		err = domain.Errorf(codes.Database, "Failed to find member  - %s", err)
 		return
 	}
 	return
@@ -55,13 +71,15 @@ func (r *MemberRepository) FindByPaymentId(payment_id int) (members domain.Membe
 
 func (r *MemberRepository) StoreMembers(members domain.Members) (err error) {
 	if err = r.Create(&members).Error; err != nil {
+		err = domain.Errorf(codes.Database, "Failed to create member  - %s", err)
 		return
 	}
 	return
 }
 
 func (r *MemberRepository) StoreMember(member domain.Member) (created_member domain.Member, err error) {
-	if err = r.Create(&member).Scan(&created_member).Error; err != nil {
+	if err = r.Create(&member).Find(&created_member).Error; err != nil {
+		err = domain.Errorf(codes.Database, "Failed to create member  - %s", err)
 		return
 	}
 	return
@@ -81,6 +99,7 @@ func (r *MemberRepository) DeleteMembers(members domain.Members) (err error) {
 		deleted_members = append(deleted_members, deleted_member)
 	}
 	if err = r.Create(&deleted_members).Error; err != nil {
+		err = domain.Errorf(codes.Database, "Failed to create deleted_member  - %s", err)
 		return
 	}
 
@@ -88,7 +107,11 @@ func (r *MemberRepository) DeleteMembers(members domain.Members) (err error) {
 	for _, member := range members {
 		member_ids = append(member_ids, int(member.ID))
 	}
-	return r.Where("id IN (?)", member_ids).Delete(&domain.Member{}).Error
+	if err = r.Where("id IN (?)", member_ids).Delete(&domain.Member{}).Error; err != nil {
+		err = domain.Errorf(codes.Database, "Failed to delete member  - %s", err)
+		return
+	}
+	return
 }
 
 func (r *MemberRepository) DeleteMember(member domain.Member) (err error) {
@@ -100,7 +123,12 @@ func (r *MemberRepository) DeleteMember(member domain.Member) (err error) {
 		DeletedAt: time.Now(),
 	}
 	if err = r.Create(&deleted_member).Error; err != nil {
+		err = domain.Errorf(codes.Database, "Failed to create deleted_member  - %s", err)
 		return
 	}
-	return r.Model(&member).Delete(&member).Error
+	if err = r.Model(&member).Delete(&member).Error; err != nil {
+		err = domain.Errorf(codes.Database, "Failed to delete member  - %s", err)
+		return
+	}
+	return
 }

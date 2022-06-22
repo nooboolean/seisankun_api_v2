@@ -83,6 +83,10 @@ func (handler *SqlHandler) Preload(column string, conditions ...interface{}) *go
 	return handler.Conn.Preload(column, conditions...)
 }
 
+func (handler *SqlHandler) Transaction(fc func(tx *gorm.DB) error) (err error) {
+	return handler.Conn.Transaction(fc)
+}
+
 func (handler *SqlHandler) Debug() *gorm.DB {
 	return handler.Conn.Debug()
 }

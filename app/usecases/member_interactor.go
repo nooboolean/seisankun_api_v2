@@ -2,6 +2,7 @@ package usecases
 
 import (
 	"github.com/nooboolean/seisankun_api_v2/domain"
+	"github.com/nooboolean/seisankun_api_v2/domain/codes"
 	"github.com/nooboolean/seisankun_api_v2/interfaces/repositories"
 )
 
@@ -27,8 +28,13 @@ func (i *MemberInteractor) Register(travel_key string, member domain.Member) (me
 }
 
 func (i *MemberInteractor) Delete(member_id int) (err error) {
-	member, err := i.MemberRepository.FindById(member_id)
+	member, err := i.MemberRepository.FindByIdWithBorrowMoneyListAndPayments(member_id)
 	if err != nil {
+		return
+	}
+
+	if len(member.BorrowMoneyList) != 0 || len(member.Payments) != 0 {
+		err = domain.Errorf(codes.InvalidRequest, "Bat Request - %s", "削除しようとしているMemberは、立て替えに関与しているため削除ができません")
 		return
 	}
 

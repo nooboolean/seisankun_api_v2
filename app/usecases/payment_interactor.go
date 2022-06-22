@@ -2,14 +2,16 @@ package usecases
 
 import (
 	"github.com/nooboolean/seisankun_api_v2/domain"
+	"github.com/nooboolean/seisankun_api_v2/domain/codes"
 	"github.com/nooboolean/seisankun_api_v2/interfaces/repositories"
 )
 
 type PaymentInteractor struct {
-	TravelRepository      *repositories.TravelRepository
-	MemberRepository      *repositories.MemberRepository
-	PaymentRepository     *repositories.PaymentRepository
-	BorrowMoneyRepository *repositories.BorrowMoneyRepository
+	TravelRepository       *repositories.TravelRepository
+	MemberRepository       *repositories.MemberRepository
+	MemberTravelRepository *repositories.MemberTravelRepository
+	PaymentRepository      *repositories.PaymentRepository
+	BorrowMoneyRepository  *repositories.BorrowMoneyRepository
 }
 
 func (i *PaymentInteractor) Get(payment_id int) (travel_key string, payment domain.Payment, borrowers domain.Borrowers, err error) {
@@ -53,6 +55,23 @@ func (i *PaymentInteractor) Register(travel_key string, payment domain.Payment, 
 	if err != nil {
 		return
 	}
+
+	var paymentRelatedMemberIds []int
+	paymentRelatedMemberIds = append(paymentRelatedMemberIds, payment.PayerId)
+	for _, borrow_money := range borrow_money_list {
+		paymentRelatedMemberIds = append(paymentRelatedMemberIds, borrow_money.BorrowerId)
+	}
+
+	for _, paymentRelatedMemberId := range paymentRelatedMemberIds {
+		_, err = i.MemberTravelRepository.FindByMemberIdAndTravelId(paymentRelatedMemberId, int(travel.ID))
+		if err != nil {
+			if domain.ErrorCode(err) == codes.NotFound {
+				err = domain.Errorf(codes.InvalidRequest, "Bat Request - %s", "立て替えた人もしくは立て替えられた人の中にTravelに参加していない人がいます")
+			}
+			return
+		}
+	}
+
 	payment.TravelId = int(travel.ID)
 
 	created_payment, err := i.PaymentRepository.Store(payment)
@@ -77,6 +96,11 @@ func (i *PaymentInteractor) Register(travel_key string, payment domain.Payment, 
 }
 
 func (i *PaymentInteractor) Update(travel_key string, payment domain.Payment, borrow_money_list domain.BorrowMoneyList) (payment_id int, err error) {
+	_, err = i.PaymentRepository.FindById(int(payment.ID))
+	if err != nil {
+		return
+	}
+
 	err = i.BorrowMoneyRepository.Delete(int(payment.ID))
 	if err != nil {
 		return
@@ -107,7 +131,12 @@ func (i *PaymentInteractor) Delete(payment_id int) (err error) {
 		return
 	}
 
-	err = i.PaymentRepository.Delete(payment_id)
+	payment, err := i.PaymentRepository.FindById(payment_id)
+	if err != nil {
+		return
+	}
+
+	err = i.PaymentRepository.Delete(payment)
 	if err != nil {
 		return
 	}

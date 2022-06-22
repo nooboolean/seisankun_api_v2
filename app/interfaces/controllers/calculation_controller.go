@@ -5,6 +5,8 @@ import (
 	"net/http"
 	"sort"
 
+	"github.com/nooboolean/seisankun_api_v2/domain"
+	"github.com/nooboolean/seisankun_api_v2/domain/codes"
 	requests "github.com/nooboolean/seisankun_api_v2/interfaces/controllers/requests/calculation"
 	responses "github.com/nooboolean/seisankun_api_v2/interfaces/controllers/responses/calculation"
 	"github.com/nooboolean/seisankun_api_v2/interfaces/controllers/responses/errors"
@@ -34,13 +36,14 @@ func NewCalculationController(sqlHandler repositories.SqlHandler) *calculationCo
 func (controller *calculationController) Index(c *gin.Context) {
 	var request requests.CalculationIndexRequest
 	if err := c.BindQuery(&request); err != nil {
-		c.JSON(http.StatusBadRequest, errors.StandardErrorResponse{Error: errors.Error{Message: "Bad Request.", Detail: err.Error()}})
+		err = domain.Errorf(codes.BadParams, "Bat Request Params - %s", err)
+		c.JSON(errors.ToHttpStatus(err), errors.StandardErrorResponse{Error: errors.Error{Message: err.Error()}})
 		return
 	}
 
 	members, err := controller.Interactor.Get(request.TravelKey)
 	if err != nil {
-		c.JSON(http.StatusInternalServerError, errors.StandardErrorResponse{Error: errors.Error{Message: "Internal Server Error.", Detail: err.Error()}})
+		c.JSON(errors.ToHttpStatus(err), errors.StandardErrorResponse{Error: errors.Error{Message: err.Error()}})
 		return
 	}
 
@@ -67,7 +70,7 @@ func (controller *calculationController) Index(c *gin.Context) {
 	sort.SliceStable(lenders, func(i, j int) bool { return lenders[i].Money > lenders[j].Money })       // NOTE: 降順(数値が高い順)
 
 	results := make(responses.Results, 0, len(members))
-	// for文でやる
+
 	for i := 0; i < len(borrowers); i++ {
 		for j := 0; j < len(lenders); j++ {
 			if lenders[j].Money == 0 {

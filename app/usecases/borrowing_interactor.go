@@ -19,7 +19,7 @@ func (i *BorrowingInteractor) Get(travel_key string) (members domain.Members, er
 }
 
 func (i *BorrowingInteractor) GetHistory(member_id int) (member domain.Member, borrow_money_list domain.BorrowMoneyList, err error) {
-	member, err = i.MemberRepository.FindByMemberIdWithBorrowMoneyListAndPayments(member_id)
+	member, err = i.MemberRepository.FindByIdWithBorrowMoneyListAndPayments(member_id)
 	if err != nil {
 		return
 	}
