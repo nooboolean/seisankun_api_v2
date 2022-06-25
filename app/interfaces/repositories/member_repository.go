@@ -78,7 +78,7 @@ func (r *MemberRepository) StoreMembers(members domain.Members) (err error) {
 }
 
 func (r *MemberRepository) StoreMember(member domain.Member) (created_member domain.Member, err error) {
-	if err = r.Create(&member).Find(&created_member).Error; err != nil {
+	if err = r.Create(&member).Scan(&created_member).Error; err != nil {
 		err = domain.Errorf(codes.Database, "Failed to create member  - %s", err)
 		return
 	}

@@ -42,7 +42,7 @@ func (r *PaymentRepository) FindByMemberId(member_id int) (payments domain.Payme
 }
 
 func (r *PaymentRepository) Store(payment domain.Payment) (created_payment domain.Member, err error) {
-	if err = r.Create(&payment).Find(&created_payment).Error; err != nil {
+	if err = r.Create(&payment).Scan(&created_payment).Error; err != nil {
 		err = domain.Errorf(codes.Database, "Failed to create payment  - %s", err)
 		return
 	}
@@ -50,7 +50,7 @@ func (r *PaymentRepository) Store(payment domain.Payment) (created_payment domai
 }
 
 func (r *PaymentRepository) Update(payment domain.Payment) (updated_payment domain.Payment, err error) {
-	if err = r.Model(&payment).Updates(&updated_payment).Error; err != nil {
+	if err = r.Model(&payment).Updates(&payment).Find(&updated_payment).Error; err != nil {
 		err = domain.Errorf(codes.Database, "Failed to update payment  - %s", err)
 		return
 	}
@@ -72,7 +72,7 @@ func (r *PaymentRepository) Delete(payment domain.Payment) (err error) {
 		err = domain.Errorf(codes.Database, "Failed to create deleted_payment  - %s", err)
 		return
 	}
-	if err = r.Model(&payment).Delete(&domain.Payment{}).Error; err != nil {
+	if err = r.Model(&payment).Delete(&payment).Error; err != nil {
 		err = domain.Errorf(codes.Database, "Failed to delete payment  - %s", err)
 		return
 	}

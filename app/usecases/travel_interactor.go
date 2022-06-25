@@ -41,13 +41,15 @@ func (i *TravelInteractor) Get(travel_key string) (travel domain.Travel, members
 
 func (i *TravelInteractor) Register(members domain.Members, travel domain.Travel) (travel_key string, err error) {
 	travel.TravelKey = xid.New().String()
-	travel_key, err = i.TravelRepository.Store(&travel)
+
+	err = i.TravelRepository.Store(&travel)
+	travel_key = travel.TravelKey
 	if err != nil {
-		return travel_key, err
+		return
 	}
 	err = i.MemberRepository.StoreMembers(members)
 	if err != nil {
-		return travel_key, err
+		return
 	}
 
 	member_travel_list := make(domain.MemberTravelList, 0, len(members))
@@ -60,6 +62,9 @@ func (i *TravelInteractor) Register(members domain.Members, travel domain.Travel
 	}
 
 	err = i.MemberTravelRepository.StoreList(member_travel_list)
+	if err != nil {
+		return
+	}
 	return
 }
 
@@ -102,14 +107,18 @@ func (i *TravelInteractor) Delete(travel_key string) (err error) {
 	}
 
 	// NOTE: borrow_moneyのpayment_idやborrower_idに外部キー制約がかかっているので、先に削除の必要あり
-	err = i.BorrowMoneyRepository.DeleteList(borrowMoneyList)
-	if err != nil {
-		return
+	if len(borrowMoneyList) != 0 {
+		err = i.BorrowMoneyRepository.DeleteList(borrowMoneyList)
+		if err != nil {
+			return
+		}
 	}
 	// NOTE: paymentsのtravel_idやpayer_idに外部キー制約がかかっているので、先に削除の必要あり
-	err = i.PaymentRepository.DeletePayments(payments)
-	if err != nil {
-		return
+	if len(payments) != 0 {
+		err = i.PaymentRepository.DeletePayments(payments)
+		if err != nil {
+			return
+		}
 	}
 	// NOTE: member_travelのmember_idやtravel_idに外部キー制約がかかっているので、先に削除の必要あり
 	err = i.MemberTravelRepository.DeleteList(member_travel_list)

@@ -101,17 +101,40 @@ func (i *PaymentInteractor) Update(travel_key string, payment domain.Payment, bo
 		return
 	}
 
+	travel, err := i.TravelRepository.FindByTravelKey(travel_key)
+	if err != nil {
+		return
+	}
+
+	var paymentRelatedMemberIds []int
+	paymentRelatedMemberIds = append(paymentRelatedMemberIds, payment.PayerId)
+	for _, borrow_money := range borrow_money_list {
+		paymentRelatedMemberIds = append(paymentRelatedMemberIds, borrow_money.BorrowerId)
+	}
+
+	for _, paymentRelatedMemberId := range paymentRelatedMemberIds {
+		_, err = i.MemberTravelRepository.FindByMemberIdAndTravelId(paymentRelatedMemberId, int(travel.ID))
+		if err != nil {
+			if domain.ErrorCode(err) == codes.NotFound {
+				err = domain.Errorf(codes.InvalidRequest, "Bat Request - %s", "立て替えた人もしくは立て替えられた人の中にTravelに参加していない人がいます")
+			}
+			return
+		}
+	}
+
 	err = i.BorrowMoneyRepository.Delete(int(payment.ID))
 	if err != nil {
 		return
 	}
 
 	money := float64(payment.Amount) / float64(len(borrow_money_list))
+	create_borrow_money_list := make(domain.BorrowMoneyList, 0, len(borrow_money_list))
 	for _, borrow_money := range borrow_money_list {
 		borrow_money.PaymentId = int(payment.ID)
 		borrow_money.Money = money
+		create_borrow_money_list = append(create_borrow_money_list, borrow_money)
 	}
-	err = i.BorrowMoneyRepository.Store(borrow_money_list)
+	err = i.BorrowMoneyRepository.Store(create_borrow_money_list)
 	if err != nil {
 		return
 	}

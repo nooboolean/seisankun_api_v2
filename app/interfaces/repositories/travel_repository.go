@@ -37,12 +37,11 @@ func (r *TravelRepository) FindById(id int) (travel domain.Travel, err error) {
 	return
 }
 
-func (r *TravelRepository) Store(travel *domain.Travel) (travel_key string, err error) {
+func (r *TravelRepository) Store(travel *domain.Travel) (err error) {
 	if err = r.Create(&travel).Error; err != nil {
 		err = domain.Errorf(codes.Database, "Failed to create travel  - %s", err)
 		return
 	}
-	travel_key = travel.TravelKey
 	return
 }
 
