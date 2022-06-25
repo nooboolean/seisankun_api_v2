@@ -13,13 +13,15 @@ type History struct {
 }
 
 type Lend struct {
-	Title string  `json:"title"`
-	Money float64 `json:"money"`
+	Title     string  `json:"title"`
+	Money     float64 `json:"money"`
+	PaymentId int     `json:"payment_id"`
 }
 
 type Borrow struct {
-	Title string  `json:"title"`
-	Money float64 `json:"money"`
+	Title     string  `json:"title"`
+	Money     float64 `json:"money"`
+	PaymentId int     `json:"payment_id"`
 }
 
 type Member struct {

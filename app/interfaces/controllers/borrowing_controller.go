@@ -84,11 +84,11 @@ func (controller *borrowingController) Index(c *gin.Context) {
 
 	histories := make(responses.Histories, 0, len(member.Payments)+len(borrow_money_list))
 	for _, payment := range member.Payments {
-		lend := responses.Lend{Title: payment.Title, Money: float64(payment.Amount)}
+		lend := responses.Lend{Title: payment.Title, Money: float64(payment.Amount), PaymentId: int(payment.ID)}
 		histories = append(histories, responses.History{Lend: lend, Member: response_member})
 	}
 	for _, borrow_money := range borrow_money_list {
-		borrow := responses.Borrow{Title: borrow_money.Payment.Title, Money: borrow_money.Money}
+		borrow := responses.Borrow{Title: borrow_money.Payment.Title, Money: borrow_money.Money, PaymentId: int(borrow_money.Payment.ID)}
 		histories = append(histories, responses.History{Borrow: borrow, Member: response_member})
 	}
 	response := responses.BorrowingIndexResponse{Histories: histories}
