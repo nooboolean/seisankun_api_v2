@@ -1,6 +1,8 @@
 package infrastructure
 
 import (
+	"os"
+
 	"github.com/gin-gonic/gin"
 	"github.com/nooboolean/seisankun_api_v2/infrastructure/middleware"
 	"github.com/nooboolean/seisankun_api_v2/interfaces/controllers"
@@ -17,32 +19,35 @@ func RouteV2(app *gin.Engine) {
 }
 
 func openAPI(app *gin.Engine) {
-	openApiGroup := app.Group("/v2")
+	// openApiGroup := app.Group("/v2")
+}
+
+func authAPI(app *gin.Engine) {
+	authApiGroup := app.Group("/v2", gin.BasicAuth(gin.Accounts{
+		os.Getenv("SEISANKUN_API_BASIC_USER"): os.Getenv("SEISANKUN_API_BASIC_PASSWORD"),
+	}))
 	travelController := controllers.NewTravelController(NewSqlHandler(), repositories.NewTransaction(NewTransactionHandler()))
 	memberController := controllers.NewMemberController(NewSqlHandler(), repositories.NewTransaction(NewTransactionHandler()))
 	paymentController := controllers.NewPaymentController(NewSqlHandler(), repositories.NewTransaction(NewTransactionHandler()))
 	borrowingController := controllers.NewBorrowingController(NewSqlHandler())
 	calculationController := controllers.NewCalculationController(NewSqlHandler())
 
-	openApiGroup.GET("/travel", travelController.Show)
-	openApiGroup.POST("/travel", travelController.Create)
-	openApiGroup.PUT("/travel", travelController.Update)
-	openApiGroup.DELETE("/travel", travelController.Delete)
+	authApiGroup.GET("/travel", travelController.Show)
+	authApiGroup.POST("/travel", travelController.Create)
+	authApiGroup.PUT("/travel", travelController.Update)
+	authApiGroup.DELETE("/travel", travelController.Delete)
 
-	openApiGroup.POST("/member", memberController.Create)
-	openApiGroup.DELETE("/member", memberController.Delete)
+	authApiGroup.POST("/member", memberController.Create)
+	authApiGroup.DELETE("/member", memberController.Delete)
 
-	openApiGroup.GET("/payment", paymentController.Show)
-	openApiGroup.GET("/payment/history", paymentController.Index)
-	openApiGroup.POST("/payment", paymentController.Create)
-	openApiGroup.PUT("/payment", paymentController.Update)
-	openApiGroup.DELETE("/payment", paymentController.Delete)
+	authApiGroup.GET("/payment", paymentController.Show)
+	authApiGroup.GET("/payment/history", paymentController.Index)
+	authApiGroup.POST("/payment", paymentController.Create)
+	authApiGroup.PUT("/payment", paymentController.Update)
+	authApiGroup.DELETE("/payment", paymentController.Delete)
 
-	openApiGroup.GET("/borrowing/statuses", borrowingController.Show)
-	openApiGroup.GET("/borrowing/history", borrowingController.Index)
+	authApiGroup.GET("/borrowing/statuses", borrowingController.Show)
+	authApiGroup.GET("/borrowing/history", borrowingController.Index)
 
-	openApiGroup.GET("/calculation/results", calculationController.Index)
-}
-
-func authAPI(app *gin.Engine) {
+	authApiGroup.GET("/calculation/results", calculationController.Index)
 }
