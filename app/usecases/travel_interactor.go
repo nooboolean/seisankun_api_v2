@@ -1,8 +1,11 @@
 package usecases
 
 import (
+	"context"
+
 	"github.com/nooboolean/seisankun_api_v2/domain"
 	"github.com/nooboolean/seisankun_api_v2/interfaces/repositories"
+	"github.com/nooboolean/seisankun_api_v2/transaction"
 	"github.com/rs/xid"
 )
 
@@ -12,6 +15,7 @@ type TravelInteractor struct {
 	MemberTravelRepository *repositories.MemberTravelRepository
 	PaymentRepository      *repositories.PaymentRepository
 	BorrowMoneyRepository  *repositories.BorrowMoneyRepository
+	Transaction            transaction.Transaction
 }
 
 func (i *TravelInteractor) Get(travel_key string) (travel domain.Travel, members domain.Members, err error) {
@@ -39,29 +43,36 @@ func (i *TravelInteractor) Get(travel_key string) (travel domain.Travel, members
 	return
 }
 
-func (i *TravelInteractor) Register(members domain.Members, travel domain.Travel) (travel_key string, err error) {
+func (i *TravelInteractor) Register(ctx context.Context, members domain.Members, travel domain.Travel) (travel_key string, err error) {
 	travel.TravelKey = xid.New().String()
-
-	err = i.TravelRepository.Store(&travel)
-	travel_key = travel.TravelKey
-	if err != nil {
-		return
-	}
-	err = i.MemberRepository.StoreMembers(members)
-	if err != nil {
-		return
-	}
-
-	member_travel_list := make(domain.MemberTravelList, 0, len(members))
-	for _, member := range members {
-		member_travel := domain.MemberTravel{
-			MemberId: int(member.ID),
-			TravelId: int(travel.ID),
+	_, err = i.Transaction.DoInTx(ctx, func(ctx context.Context) (interface{}, error) {
+		err = i.TravelRepository.Store(ctx, &travel)
+		travel_key = travel.TravelKey
+		if err != nil {
+			return "", err
 		}
-		member_travel_list = append(member_travel_list, member_travel)
-	}
+		err = i.MemberRepository.StoreMembers(ctx, members)
+		if err != nil {
+			return "", err
+		}
 
-	err = i.MemberTravelRepository.StoreList(member_travel_list)
+		member_travel_list := make(domain.MemberTravelList, 0, len(members))
+		for _, member := range members {
+			member_travel := domain.MemberTravel{
+				MemberId: int(member.ID),
+				TravelId: int(travel.ID),
+			}
+			member_travel_list = append(member_travel_list, member_travel)
+		}
+
+		err = i.MemberTravelRepository.StoreList(ctx, member_travel_list)
+		if err != nil {
+			return "", err
+		}
+
+		return "", err
+	})
+
 	if err != nil {
 		return
 	}
@@ -80,56 +91,63 @@ func (i *TravelInteractor) Update(t domain.Travel) (travel domain.Travel, err er
 	return
 }
 
-func (i *TravelInteractor) Delete(travel_key string) (err error) {
-	travel, err := i.TravelRepository.FindByTravelKey(travel_key)
-	if err != nil {
-		return
-	}
-
-	members, err := i.MemberRepository.FindByTravelKey(travel_key)
-	if err != nil {
-		return
-	}
-
-	member_travel_list, err := i.MemberTravelRepository.FindByTravelKey(travel_key)
-	if err != nil {
-		return
-	}
-
-	payments, err := i.PaymentRepository.FindByTravelKey(travel_key)
-	if err != nil {
-		return
-	}
-
-	borrowMoneyList, err := i.BorrowMoneyRepository.FindByPayments(payments)
-	if err != nil {
-		return
-	}
-
-	// NOTE: borrow_moneyのpayment_idやborrower_idに外部キー制約がかかっているので、先に削除の必要あり
-	if len(borrowMoneyList) != 0 {
-		err = i.BorrowMoneyRepository.DeleteList(borrowMoneyList)
+func (i *TravelInteractor) Delete(ctx context.Context, travel_key string) (err error) {
+	_, err = i.Transaction.DoInTx(ctx, func(ctx context.Context) (interface{}, error) {
+		travel, err := i.TravelRepository.FindByTravelKey(travel_key)
 		if err != nil {
-			return
+			return "", err
 		}
-	}
-	// NOTE: paymentsのtravel_idやpayer_idに外部キー制約がかかっているので、先に削除の必要あり
-	if len(payments) != 0 {
-		err = i.PaymentRepository.DeletePayments(payments)
+
+		members, err := i.MemberRepository.FindByTravelKey(travel_key)
 		if err != nil {
-			return
+			return "", err
 		}
-	}
-	// NOTE: member_travelのmember_idやtravel_idに外部キー制約がかかっているので、先に削除の必要あり
-	err = i.MemberTravelRepository.DeleteList(member_travel_list)
-	if err != nil {
-		return
-	}
-	err = i.TravelRepository.Delete(travel)
-	if err != nil {
-		return
-	}
-	err = i.MemberRepository.DeleteMembers(members)
+
+		member_travel_list, err := i.MemberTravelRepository.FindByTravelKey(travel_key)
+		if err != nil {
+			return "", err
+		}
+
+		payments, err := i.PaymentRepository.FindByTravelKey(travel_key)
+		if err != nil {
+			return "", err
+		}
+
+		borrowMoneyList, err := i.BorrowMoneyRepository.FindByPayments(payments)
+		if err != nil {
+			return "", err
+		}
+
+		// NOTE: borrow_moneyのpayment_idやborrower_idに外部キー制約がかかっているので、先に削除の必要あり
+		if len(borrowMoneyList) != 0 {
+			err = i.BorrowMoneyRepository.DeleteList(ctx, borrowMoneyList)
+			if err != nil {
+				return "", err
+			}
+		}
+		// NOTE: paymentsのtravel_idやpayer_idに外部キー制約がかかっているので、先に削除の必要あり
+		if len(payments) != 0 {
+			err = i.PaymentRepository.DeletePayments(ctx, payments)
+			if err != nil {
+				return "", err
+			}
+		}
+		// NOTE: member_travelのmember_idやtravel_idに外部キー制約がかかっているので、先に削除の必要あり
+		err = i.MemberTravelRepository.DeleteList(ctx, member_travel_list)
+		if err != nil {
+			return "", err
+		}
+		err = i.TravelRepository.Delete(ctx, travel)
+		if err != nil {
+			return "", err
+		}
+		err = i.MemberRepository.DeleteMembers(ctx, members)
+		if err != nil {
+			return "", err
+		}
+		return "", err
+	})
+
 	if err != nil {
 		return
 	}

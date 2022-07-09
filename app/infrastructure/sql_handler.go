@@ -1,6 +1,7 @@
 package infrastructure
 
 import (
+	"context"
 	"os"
 
 	"github.com/nooboolean/seisankun_api_v2/interfaces/repositories"
@@ -89,4 +90,29 @@ func (handler *SqlHandler) Transaction(fc func(tx *gorm.DB) error) (err error) {
 
 func (handler *SqlHandler) Debug() *gorm.DB {
 	return handler.Conn.Debug()
+}
+
+func (handler *SqlHandler) Begin() *gorm.DB {
+	return handler.Conn.Begin()
+}
+
+func (handler *SqlHandler) WithContext(ctx context.Context) *gorm.DB {
+	return handler.Conn.WithContext(ctx)
+}
+
+func NewTransactionHandler() *gorm.DB {
+	USER := os.Getenv("DB_USERNAME")
+	PASS := os.Getenv("DB_PASSWORD")
+	HOST := "tcp(" + os.Getenv("DB_HOST") + ":" + os.Getenv("DB_PORT") + ")"
+	DBNAME := os.Getenv("DB_DATABASE")
+
+	CONNECT := USER + ":" + PASS + "@" + HOST + "/" + DBNAME + "?charset=utf8mb4&parseTime=true&loc=Asia%2FTokyo"
+	conn, err := gorm.Open(mysql.Open(CONNECT), &gorm.Config{})
+	if err != nil {
+		panic(err.Error)
+	}
+
+	conn.Logger.LogMode(4)
+
+	return conn
 }

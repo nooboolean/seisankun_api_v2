@@ -1,6 +1,10 @@
 package repositories
 
-import "gorm.io/gorm"
+import (
+	"context"
+
+	"gorm.io/gorm"
+)
 
 type SqlHandler interface {
 	Exec(string, ...interface{}) *gorm.DB
@@ -18,4 +22,6 @@ type SqlHandler interface {
 	Preload(string, ...interface{}) *gorm.DB
 	Transaction(func(tx *gorm.DB) error) error
 	Debug() *gorm.DB
+	Begin() *gorm.DB
+	WithContext(context.Context) *gorm.DB
 }

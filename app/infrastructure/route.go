@@ -4,6 +4,7 @@ import (
 	"github.com/gin-gonic/gin"
 	"github.com/nooboolean/seisankun_api_v2/infrastructure/middleware"
 	"github.com/nooboolean/seisankun_api_v2/interfaces/controllers"
+	"github.com/nooboolean/seisankun_api_v2/interfaces/repositories"
 )
 
 func RouteV2(app *gin.Engine) {
@@ -17,9 +18,9 @@ func RouteV2(app *gin.Engine) {
 
 func openAPI(app *gin.Engine) {
 	openApiGroup := app.Group("/v2")
-	travelController := controllers.NewTravelController(NewSqlHandler())
-	memberController := controllers.NewMemberController(NewSqlHandler())
-	paymentController := controllers.NewPaymentController(NewSqlHandler())
+	travelController := controllers.NewTravelController(NewSqlHandler(), repositories.NewTransaction(NewTransactionHandler()))
+	memberController := controllers.NewMemberController(NewSqlHandler(), repositories.NewTransaction(NewTransactionHandler()))
+	paymentController := controllers.NewPaymentController(NewSqlHandler(), repositories.NewTransaction(NewTransactionHandler()))
 	borrowingController := controllers.NewBorrowingController(NewSqlHandler())
 	calculationController := controllers.NewCalculationController(NewSqlHandler())
 

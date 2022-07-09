@@ -1,6 +1,7 @@
 package repositories
 
 import (
+	"context"
 	"errors"
 	"time"
 
@@ -10,11 +11,11 @@ import (
 )
 
 type PaymentRepository struct {
-	SqlHandler
+	Db SqlHandler
 }
 
 func (r *PaymentRepository) FindById(id int) (payment domain.Payment, err error) {
-	if err = r.First(&payment, id).Error; err != nil {
+	if err = r.Db.First(&payment, id).Error; err != nil {
 		if errors.Is(err, gorm.ErrRecordNotFound) {
 			err = domain.Errorf(codes.NotFound, "Failed to find payment - %s", err)
 			return
@@ -26,7 +27,7 @@ func (r *PaymentRepository) FindById(id int) (payment domain.Payment, err error)
 }
 
 func (r *PaymentRepository) FindByTravelKey(travel_key string) (payments domain.Payments, err error) {
-	if err = r.Preload("Member").Joins("Travel").Where("Travel.travel_key = ?", travel_key).Find(&payments).Error; err != nil {
+	if err = r.Db.Preload("Member").Joins("Travel").Where("Travel.travel_key = ?", travel_key).Find(&payments).Error; err != nil {
 		err = domain.Errorf(codes.Database, "Failed to find payment  - %s", err)
 		return
 	}
@@ -34,30 +35,42 @@ func (r *PaymentRepository) FindByTravelKey(travel_key string) (payments domain.
 }
 
 func (r *PaymentRepository) FindByMemberId(member_id int) (payments domain.Payments, err error) {
-	if err = r.Where("payer_id = ?", member_id).Find(&payments).Error; err != nil {
+	if err = r.Db.Where("payer_id = ?", member_id).Find(&payments).Error; err != nil {
 		err = domain.Errorf(codes.Database, "Failed to find payment  - %s", err)
 		return
 	}
 	return
 }
 
-func (r *PaymentRepository) Store(payment domain.Payment) (created_payment domain.Member, err error) {
-	if err = r.Create(&payment).Scan(&created_payment).Error; err != nil {
+func (r *PaymentRepository) Store(ctx context.Context, payment domain.Payment) (created_payment domain.Member, err error) {
+	db, ok := GetTx(ctx)
+	if ok {
+		err = db.Create(&payment).Scan(&created_payment).Error
+	} else {
+		err = r.Db.Create(&payment).Scan(&created_payment).Error
+	}
+	if err != nil {
 		err = domain.Errorf(codes.Database, "Failed to create payment  - %s", err)
 		return
 	}
 	return
 }
 
-func (r *PaymentRepository) Update(payment domain.Payment) (updated_payment domain.Payment, err error) {
-	if err = r.Model(&payment).Updates(&payment).Find(&updated_payment).Error; err != nil {
+func (r *PaymentRepository) Update(ctx context.Context, payment domain.Payment) (updated_payment domain.Payment, err error) {
+	db, ok := GetTx(ctx)
+	if ok {
+		err = db.Model(&payment).Updates(&payment).Find(&updated_payment).Error
+	} else {
+		err = r.Db.Model(&payment).Updates(&payment).Find(&updated_payment).Error
+	}
+	if err != nil {
 		err = domain.Errorf(codes.Database, "Failed to update payment  - %s", err)
 		return
 	}
 	return
 }
 
-func (r *PaymentRepository) Delete(payment domain.Payment) (err error) {
+func (r *PaymentRepository) Delete(ctx context.Context, payment domain.Payment) (err error) {
 	deletedPayment := domain.DeletedPayment{
 		ID:        payment.ID,
 		TravelId:  payment.TravelId,
@@ -68,18 +81,31 @@ func (r *PaymentRepository) Delete(payment domain.Payment) (err error) {
 		UpdatedAt: payment.UpdatedAt,
 		DeletedAt: time.Now(),
 	}
-	if err = r.Create(&deletedPayment).Error; err != nil {
+
+	db, ok := GetTx(ctx)
+	if ok {
+		err = db.Create(&deletedPayment).Error
+	} else {
+		err = r.Db.Create(&deletedPayment).Error
+	}
+	if err != nil {
 		err = domain.Errorf(codes.Database, "Failed to create deleted_payment  - %s", err)
 		return
 	}
-	if err = r.Model(&payment).Delete(&payment).Error; err != nil {
+
+	if ok {
+		err = db.Model(&payment).Delete(&payment).Error
+	} else {
+		err = r.Db.Model(&payment).Delete(&payment).Error
+	}
+	if err != nil {
 		err = domain.Errorf(codes.Database, "Failed to delete payment  - %s", err)
 		return
 	}
 	return
 }
 
-func (r *PaymentRepository) DeletePayments(payments domain.Payments) (err error) {
+func (r *PaymentRepository) DeletePayments(ctx context.Context, payments domain.Payments) (err error) {
 	deletedPayments := make(domain.DeletedPayments, 0, len(payments))
 	deletedAt := time.Now()
 	for _, payment := range payments {
@@ -95,7 +121,14 @@ func (r *PaymentRepository) DeletePayments(payments domain.Payments) (err error)
 		}
 		deletedPayments = append(deletedPayments, deletedPayment)
 	}
-	if err = r.Create(&deletedPayments).Error; err != nil {
+
+	db, ok := GetTx(ctx)
+	if ok {
+		err = db.Create(&deletedPayments).Error
+	} else {
+		err = r.Db.Create(&deletedPayments).Error
+	}
+	if err != nil {
 		err = domain.Errorf(codes.Database, "Failed to create deleted_payment  - %s", err)
 		return
 	}
@@ -104,7 +137,13 @@ func (r *PaymentRepository) DeletePayments(payments domain.Payments) (err error)
 	for _, payment := range payments {
 		paymentIds = append(paymentIds, int(payment.ID))
 	}
-	if err = r.Where("id IN (?)", paymentIds).Delete(&domain.Payment{}).Error; err != nil {
+
+	if ok {
+		err = db.Where("id IN (?)", paymentIds).Delete(&domain.Payment{}).Error
+	} else {
+		err = r.Db.Where("id IN (?)", paymentIds).Delete(&domain.Payment{}).Error
+	}
+	if err != nil {
 		err = domain.Errorf(codes.Database, "Failed to delete payment  - %s", err)
 		return
 	}

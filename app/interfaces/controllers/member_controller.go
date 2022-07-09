@@ -9,6 +9,7 @@ import (
 	"github.com/nooboolean/seisankun_api_v2/interfaces/controllers/responses/errors"
 	responses "github.com/nooboolean/seisankun_api_v2/interfaces/controllers/responses/members"
 	"github.com/nooboolean/seisankun_api_v2/interfaces/repositories"
+	"github.com/nooboolean/seisankun_api_v2/transaction"
 	"github.com/nooboolean/seisankun_api_v2/usecases"
 
 	"github.com/gin-gonic/gin"
@@ -18,18 +19,19 @@ type memberController struct {
 	Interactor *usecases.MemberInteractor
 }
 
-func NewMemberController(sqlHandler repositories.SqlHandler) *memberController {
+func NewMemberController(sqlHandler repositories.SqlHandler, transaction transaction.Transaction) *memberController {
 	return &memberController{
 		Interactor: &usecases.MemberInteractor{
 			TravelRepository: &repositories.TravelRepository{
-				SqlHandler: sqlHandler,
+				Db: sqlHandler,
 			},
 			MemberRepository: &repositories.MemberRepository{
-				SqlHandler: sqlHandler,
+				Db: sqlHandler,
 			},
 			MemberTravelRepository: &repositories.MemberTravelRepository{
-				SqlHandler: sqlHandler,
+				Db: sqlHandler,
 			},
+			Transaction: transaction,
 		},
 	}
 }
@@ -42,7 +44,7 @@ func (controller *memberController) Create(c *gin.Context) {
 		return
 	}
 
-	member_id, err := controller.Interactor.Register(request.Travel.TravelKey, request.Member)
+	member_id, err := controller.Interactor.Register(c, request.Travel.TravelKey, request.Member)
 	if err != nil {
 		c.JSON(errors.ToHttpStatus(err), errors.StandardErrorResponse{Error: errors.Error{Message: err.Error()}})
 		return
@@ -60,7 +62,7 @@ func (controller *memberController) Delete(c *gin.Context) {
 		return
 	}
 
-	err := controller.Interactor.Delete(request.MemberId)
+	err := controller.Interactor.Delete(c, request.MemberId)
 	if err != nil {
 		c.JSON(errors.ToHttpStatus(err), errors.StandardErrorResponse{Error: errors.Error{Message: err.Error()}})
 		return

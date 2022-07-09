@@ -11,6 +11,7 @@ import (
 	payment_history_responses "github.com/nooboolean/seisankun_api_v2/interfaces/controllers/responses/payment_history"
 	payment_responses "github.com/nooboolean/seisankun_api_v2/interfaces/controllers/responses/payments"
 	"github.com/nooboolean/seisankun_api_v2/interfaces/repositories"
+	"github.com/nooboolean/seisankun_api_v2/transaction"
 	"github.com/nooboolean/seisankun_api_v2/usecases"
 
 	"github.com/gin-gonic/gin"
@@ -20,24 +21,25 @@ type paymentController struct {
 	Interactor *usecases.PaymentInteractor
 }
 
-func NewPaymentController(sqlHandler repositories.SqlHandler) *paymentController {
+func NewPaymentController(sqlHandler repositories.SqlHandler, transaction transaction.Transaction) *paymentController {
 	return &paymentController{
 		Interactor: &usecases.PaymentInteractor{
 			TravelRepository: &repositories.TravelRepository{
-				SqlHandler: sqlHandler,
+				Db: sqlHandler,
 			},
 			MemberRepository: &repositories.MemberRepository{
-				SqlHandler: sqlHandler,
+				Db: sqlHandler,
 			},
 			MemberTravelRepository: &repositories.MemberTravelRepository{
-				SqlHandler: sqlHandler,
+				Db: sqlHandler,
 			},
 			PaymentRepository: &repositories.PaymentRepository{
-				SqlHandler: sqlHandler,
+				Db: sqlHandler,
 			},
 			BorrowMoneyRepository: &repositories.BorrowMoneyRepository{
-				SqlHandler: sqlHandler,
+				Db: sqlHandler,
 			},
+			Transaction: transaction,
 		},
 	}
 }
@@ -125,7 +127,7 @@ func (controller *paymentController) Create(c *gin.Context) {
 		borrow_money_list = append(borrow_money_list, borrow_money)
 	}
 
-	payment_id, err := controller.Interactor.Register(request.Payment.TravelKey, payment, borrow_money_list)
+	payment_id, err := controller.Interactor.Register(c, request.Payment.TravelKey, payment, borrow_money_list)
 	if err != nil {
 		c.JSON(errors.ToHttpStatus(err), errors.StandardErrorResponse{Error: errors.Error{Message: err.Error()}})
 		return
@@ -158,7 +160,7 @@ func (controller *paymentController) Update(c *gin.Context) {
 		borrow_money_list = append(borrow_money_list, borrow_money)
 	}
 
-	payment_id, err := controller.Interactor.Update(request.Payment.TravelKey, payment, borrow_money_list)
+	payment_id, err := controller.Interactor.Update(c, request.Payment.TravelKey, payment, borrow_money_list)
 	if err != nil {
 		c.JSON(errors.ToHttpStatus(err), errors.StandardErrorResponse{Error: errors.Error{Message: err.Error()}})
 		return
@@ -176,7 +178,7 @@ func (controller *paymentController) Delete(c *gin.Context) {
 		return
 	}
 
-	err := controller.Interactor.Delete(request.PaymentId)
+	err := controller.Interactor.Delete(c, request.PaymentId)
 	if err != nil {
 		c.JSON(errors.ToHttpStatus(err), errors.StandardErrorResponse{Error: errors.Error{Message: err.Error()}})
 		return

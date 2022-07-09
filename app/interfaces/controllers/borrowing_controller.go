@@ -22,10 +22,10 @@ func NewBorrowingController(sqlHandler repositories.SqlHandler) *borrowingContro
 	return &borrowingController{
 		Interactor: &usecases.BorrowingInteractor{
 			MemberRepository: &repositories.MemberRepository{
-				SqlHandler: sqlHandler,
+				Db: sqlHandler,
 			},
 			BorrowMoneyRepository: &repositories.BorrowMoneyRepository{
-				SqlHandler: sqlHandler,
+				Db: sqlHandler,
 			},
 		},
 	}

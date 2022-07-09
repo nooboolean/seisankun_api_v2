@@ -1,6 +1,7 @@
 package repositories
 
 import (
+	"context"
 	"errors"
 	"time"
 
@@ -10,11 +11,11 @@ import (
 )
 
 type MemberRepository struct {
-	SqlHandler
+	Db SqlHandler
 }
 
 func (r *MemberRepository) FindByTravelKey(travel_key string) (members domain.Members, err error) {
-	if err = r.Model(&domain.Member{}).Joins(`
+	if err = r.Db.Model(&domain.Member{}).Joins(`
 																					LEFT JOIN member_travel ON member_travel.member_id = members.id
 																					LEFT JOIN travels ON member_travel.travel_id = travels.id
 																	`).Where("travels.travel_key = ?", travel_key).Find(&members).Error; err != nil {
@@ -25,7 +26,7 @@ func (r *MemberRepository) FindByTravelKey(travel_key string) (members domain.Me
 }
 
 func (r *MemberRepository) FindByTravelKeyWithBorrowMoneyListAndPayments(travel_key string) (members domain.Members, err error) {
-	if err = r.Preload("BorrowMoneyList").Preload("Payments").Joins(`
+	if err = r.Db.Preload("BorrowMoneyList").Preload("Payments").Joins(`
 																					LEFT JOIN member_travel ON member_travel.member_id = members.id
 																					LEFT JOIN travels ON member_travel.travel_id = travels.id
 																	`).Where("travels.travel_key = ?", travel_key).Find(&members).Error; err != nil {
@@ -36,7 +37,7 @@ func (r *MemberRepository) FindByTravelKeyWithBorrowMoneyListAndPayments(travel_
 }
 
 func (r *MemberRepository) FindByIdWithBorrowMoneyListAndPayments(member_id int) (member domain.Member, err error) {
-	if err = r.Preload("BorrowMoneyList").Preload("Payments").Where(domain.Member{ID: uint(member_id)}).First(&member).Error; err != nil {
+	if err = r.Db.Preload("BorrowMoneyList").Preload("Payments").Where(domain.Member{ID: uint(member_id)}).First(&member).Error; err != nil {
 		if errors.Is(err, gorm.ErrRecordNotFound) {
 			err = domain.Errorf(codes.NotFound, "Failed to find member - %s", err)
 			return
@@ -48,7 +49,7 @@ func (r *MemberRepository) FindByIdWithBorrowMoneyListAndPayments(member_id int)
 }
 
 func (r *MemberRepository) FindById(id int) (member domain.Member, err error) {
-	if err = r.First(&member, id).Error; err != nil {
+	if err = r.Db.First(&member, id).Error; err != nil {
 		if errors.Is(err, gorm.ErrRecordNotFound) {
 			err = domain.Errorf(codes.NotFound, "Failed to find member - %s", err)
 			return
@@ -60,7 +61,7 @@ func (r *MemberRepository) FindById(id int) (member domain.Member, err error) {
 }
 
 func (r *MemberRepository) FindByPaymentId(payment_id int) (members domain.Members, err error) {
-	if err = r.Model(&domain.Member{}).Joins(`
+	if err = r.Db.Model(&domain.Member{}).Joins(`
 																					LEFT JOIN borrow_money ON borrow_money.borrower_id = members.id
 																	`).Where("borrow_money.payment_id = ?", payment_id).Find(&members).Error; err != nil {
 		err = domain.Errorf(codes.Database, "Failed to find member  - %s", err)
@@ -69,23 +70,36 @@ func (r *MemberRepository) FindByPaymentId(payment_id int) (members domain.Membe
 	return
 }
 
-func (r *MemberRepository) StoreMembers(members domain.Members) (err error) {
-	if err = r.Create(&members).Error; err != nil {
+func (r *MemberRepository) StoreMembers(ctx context.Context, members domain.Members) (err error) {
+	db, ok := GetTx(ctx)
+	if ok {
+		err = db.Create(&members).Error
+	} else {
+		err = r.Db.Create(&members).Error
+	}
+
+	if err != nil {
 		err = domain.Errorf(codes.Database, "Failed to create member  - %s", err)
 		return
 	}
 	return
 }
 
-func (r *MemberRepository) StoreMember(member domain.Member) (created_member domain.Member, err error) {
-	if err = r.Create(&member).Scan(&created_member).Error; err != nil {
+func (r *MemberRepository) StoreMember(ctx context.Context, member domain.Member) (created_member domain.Member, err error) {
+	db, ok := GetTx(ctx)
+	if ok {
+		err = db.Create(&member).Scan(&created_member).Error
+	} else {
+		err = r.Db.Create(&member).Scan(&created_member).Error
+	}
+	if err != nil {
 		err = domain.Errorf(codes.Database, "Failed to create member  - %s", err)
 		return
 	}
 	return
 }
 
-func (r *MemberRepository) DeleteMembers(members domain.Members) (err error) {
+func (r *MemberRepository) DeleteMembers(ctx context.Context, members domain.Members) (err error) {
 	deleted_members := make(domain.DeletedMembers, 0, len(members))
 	deleted_at := time.Now()
 	for _, member := range members {
@@ -98,7 +112,14 @@ func (r *MemberRepository) DeleteMembers(members domain.Members) (err error) {
 		}
 		deleted_members = append(deleted_members, deleted_member)
 	}
-	if err = r.Create(&deleted_members).Error; err != nil {
+
+	db, ok := GetTx(ctx)
+	if ok {
+		err = db.Create(&deleted_members).Error
+	} else {
+		err = r.Db.Create(&deleted_members).Error
+	}
+	if err != nil {
 		err = domain.Errorf(codes.Database, "Failed to create deleted_member  - %s", err)
 		return
 	}
@@ -107,14 +128,20 @@ func (r *MemberRepository) DeleteMembers(members domain.Members) (err error) {
 	for _, member := range members {
 		member_ids = append(member_ids, int(member.ID))
 	}
-	if err = r.Where("id IN (?)", member_ids).Delete(&domain.Member{}).Error; err != nil {
+
+	if ok {
+		err = db.Where("id IN (?)", member_ids).Delete(&domain.Member{}).Error
+	} else {
+		err = r.Db.Where("id IN (?)", member_ids).Delete(&domain.Member{}).Error
+	}
+	if err != nil {
 		err = domain.Errorf(codes.Database, "Failed to delete member  - %s", err)
 		return
 	}
 	return
 }
 
-func (r *MemberRepository) DeleteMember(member domain.Member) (err error) {
+func (r *MemberRepository) DeleteMember(ctx context.Context, member domain.Member) (err error) {
 	deleted_member := domain.DeletedMember{
 		ID:        member.ID,
 		Name:      member.Name,
@@ -122,11 +149,24 @@ func (r *MemberRepository) DeleteMember(member domain.Member) (err error) {
 		UpdatedAt: member.UpdatedAt,
 		DeletedAt: time.Now(),
 	}
-	if err = r.Create(&deleted_member).Error; err != nil {
+
+	db, ok := GetTx(ctx)
+	if ok {
+		err = db.Create(&deleted_member).Error
+	} else {
+		err = r.Db.Create(&deleted_member).Error
+	}
+	if err != nil {
 		err = domain.Errorf(codes.Database, "Failed to create deleted_member  - %s", err)
 		return
 	}
-	if err = r.Model(&member).Delete(&member).Error; err != nil {
+
+	if ok {
+		err = db.Model(&member).Delete(&member).Error
+	} else {
+		err = r.Db.Model(&member).Delete(&member).Error
+	}
+	if err != nil {
 		err = domain.Errorf(codes.Database, "Failed to delete member  - %s", err)
 		return
 	}

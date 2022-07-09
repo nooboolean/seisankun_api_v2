@@ -24,10 +24,10 @@ func NewCalculationController(sqlHandler repositories.SqlHandler) *calculationCo
 	return &calculationController{
 		Interactor: &usecases.CalculationInteractor{
 			MemberRepository: &repositories.MemberRepository{
-				SqlHandler: sqlHandler,
+				Db: sqlHandler,
 			},
 			BorrowMoneyRepository: &repositories.BorrowMoneyRepository{
-				SqlHandler: sqlHandler,
+				Db: sqlHandler,
 			},
 		},
 	}

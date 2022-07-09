@@ -9,6 +9,7 @@ import (
 	"github.com/nooboolean/seisankun_api_v2/interfaces/controllers/responses/errors"
 	responsesTravels "github.com/nooboolean/seisankun_api_v2/interfaces/controllers/responses/travels"
 	"github.com/nooboolean/seisankun_api_v2/interfaces/repositories"
+	"github.com/nooboolean/seisankun_api_v2/transaction"
 	"github.com/nooboolean/seisankun_api_v2/usecases"
 
 	"github.com/gin-gonic/gin"
@@ -18,24 +19,25 @@ type travelController struct {
 	Interactor *usecases.TravelInteractor
 }
 
-func NewTravelController(sqlHandler repositories.SqlHandler) *travelController {
+func NewTravelController(sqlHandler repositories.SqlHandler, transaction transaction.Transaction) *travelController {
 	return &travelController{
 		Interactor: &usecases.TravelInteractor{
 			TravelRepository: &repositories.TravelRepository{
-				SqlHandler: sqlHandler,
+				Db: sqlHandler,
 			},
 			MemberRepository: &repositories.MemberRepository{
-				SqlHandler: sqlHandler,
+				Db: sqlHandler,
 			},
 			MemberTravelRepository: &repositories.MemberTravelRepository{
-				SqlHandler: sqlHandler,
+				Db: sqlHandler,
 			},
 			PaymentRepository: &repositories.PaymentRepository{
-				SqlHandler: sqlHandler,
+				Db: sqlHandler,
 			},
 			BorrowMoneyRepository: &repositories.BorrowMoneyRepository{
-				SqlHandler: sqlHandler,
+				Db: sqlHandler,
 			},
+			Transaction: transaction,
 		},
 	}
 }
@@ -67,7 +69,7 @@ func (controller *travelController) Create(c *gin.Context) {
 		return
 	}
 
-	travelKey, err := controller.Interactor.Register(request.Members, request.Travel)
+	travelKey, err := controller.Interactor.Register(c, request.Members, request.Travel)
 	if err != nil {
 		c.JSON(errors.ToHttpStatus(err), errors.StandardErrorResponse{Error: errors.Error{Message: err.Error()}})
 		return
@@ -103,7 +105,7 @@ func (controller *travelController) Delete(c *gin.Context) {
 		return
 	}
 
-	err := controller.Interactor.Delete(request.TravelKey)
+	err := controller.Interactor.Delete(c, request.TravelKey)
 	if err != nil {
 		c.JSON(errors.ToHttpStatus(err), errors.StandardErrorResponse{Error: errors.Error{Message: err.Error()}})
 		return

@@ -1,6 +1,7 @@
 package repositories
 
 import (
+	"context"
 	"errors"
 	"time"
 
@@ -10,11 +11,11 @@ import (
 )
 
 type TravelRepository struct {
-	SqlHandler
+	Db SqlHandler
 }
 
 func (r *TravelRepository) FindByTravelKey(travel_key string) (travel domain.Travel, err error) {
-	if err = r.Where(&domain.Travel{TravelKey: travel_key}).First(&travel).Error; err != nil {
+	if err = r.Db.Where(&domain.Travel{TravelKey: travel_key}).First(&travel).Error; err != nil {
 		if errors.Is(err, gorm.ErrRecordNotFound) {
 			err = domain.Errorf(codes.NotFound, "Failed to find travel - %s", err)
 			return
@@ -26,7 +27,7 @@ func (r *TravelRepository) FindByTravelKey(travel_key string) (travel domain.Tra
 }
 
 func (r *TravelRepository) FindById(id int) (travel domain.Travel, err error) {
-	if err = r.First(&travel, id).Error; err != nil {
+	if err = r.Db.First(&travel, id).Error; err != nil {
 		if errors.Is(err, gorm.ErrRecordNotFound) {
 			err = domain.Errorf(codes.NotFound, "Failed to find travel - %s", err)
 			return
@@ -37,8 +38,14 @@ func (r *TravelRepository) FindById(id int) (travel domain.Travel, err error) {
 	return
 }
 
-func (r *TravelRepository) Store(travel *domain.Travel) (err error) {
-	if err = r.Create(&travel).Error; err != nil {
+func (r *TravelRepository) Store(ctx context.Context, travel *domain.Travel) (err error) {
+	db, ok := GetTx(ctx)
+	if ok {
+		err = db.Create(&travel).Error
+	} else {
+		err = r.Db.Create(&travel).Error
+	}
+	if err != nil {
 		err = domain.Errorf(codes.Database, "Failed to create travel  - %s", err)
 		return
 	}
@@ -46,14 +53,14 @@ func (r *TravelRepository) Store(travel *domain.Travel) (err error) {
 }
 
 func (r *TravelRepository) Update(t domain.Travel) (travel domain.Travel, err error) {
-	if err = r.Model(&t).Updates(&t).Find(&travel).Error; err != nil {
+	if err = r.Db.Model(&t).Updates(&t).Find(&travel).Error; err != nil {
 		err = domain.Errorf(codes.Database, "Failed to update travel  - %s", err)
 		return
 	}
 	return
 }
 
-func (r *TravelRepository) Delete(travel domain.Travel) (err error) {
+func (r *TravelRepository) Delete(ctx context.Context, travel domain.Travel) (err error) {
 	deleted_travel := domain.DeletedTravel{
 		ID:        travel.ID,
 		Name:      travel.Name,
@@ -62,11 +69,24 @@ func (r *TravelRepository) Delete(travel domain.Travel) (err error) {
 		UpdatedAt: travel.UpdatedAt,
 		DeletedAt: time.Now(),
 	}
-	if err = r.Create(&deleted_travel).Error; err != nil {
+
+	db, ok := GetTx(ctx)
+	if ok {
+		err = db.Create(&deleted_travel).Error
+	} else {
+		err = r.Db.Create(&deleted_travel).Error
+	}
+	if err != nil {
 		err = domain.Errorf(codes.Database, "Failed to create deleted_travel  - %s", err)
 		return
 	}
-	if err = r.Model(&travel).Delete(&travel).Error; err != nil {
+
+	if ok {
+		err = db.Model(&travel).Delete(&travel).Error
+	} else {
+		err = r.Db.Model(&travel).Delete(&travel).Error
+	}
+	if err != nil {
 		err = domain.Errorf(codes.Database, "Failed to delete travel  - %s", err)
 		return
 	}
