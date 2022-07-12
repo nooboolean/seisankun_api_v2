@@ -1,0 +1,10 @@
+build:
+  docker:
+    web: ./heroku/runner/Dockerfile
+    app: ./heroku/go/Dockerfile
+release:
+  image: app
+  command:
+    - cd app/db/migrations && goose up
+run:
+  web: /main

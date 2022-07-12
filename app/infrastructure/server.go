@@ -9,7 +9,7 @@ import (
 
 func Start() error {
 	app := setup()
-	return endless.ListenAndServe(":"+os.Getenv("HTTP_PORT"), app)
+	return endless.ListenAndServe(":"+os.Getenv("PORT"), app)
 }
 
 func setup() *gin.Engine {
