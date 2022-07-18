@@ -1,7 +1,7 @@
 build:
   docker:
-    web: ./heroku/runner/Dockerfile
-    app: ./heroku/go/Dockerfile
+    web: Dockerfile.runner.heroku
+    app: Dockerfile.go.heroku
 release:
   image: app
   command:
