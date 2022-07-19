@@ -15,11 +15,11 @@ RUN apt-get update \
   && go get github.com/pressly/goose/v3/cmd/goose \
   && go build -o /go/bin/goose github.com/pressly/goose/v3/cmd/goose
 
-RUN GOOS=linux GOARCH=amd64 go build -o /main
+RUN GOOS=linux GOARCH=amd64 go build -o /main .
 
 FROM alpine:3.9
 
-COPY --from=builder /main .
+COPY --from=builder /main ./
 
 ENV PORT=${PORT}
-ENTRYPOINT ["/main"]
+ENTRYPOINT ["./main"]
