@@ -7,6 +7,6 @@ build:
 release:
   image: app
   command:
-    - cd app/db/migrations && goose up
+    - goose up -dir ./app/db/migrations
 run:
   web: /main
