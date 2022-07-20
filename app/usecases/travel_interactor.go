@@ -2,6 +2,7 @@ package usecases
 
 import (
 	"context"
+	"fmt"
 
 	"github.com/nooboolean/seisankun_api_v2/domain"
 	"github.com/nooboolean/seisankun_api_v2/interfaces/repositories"
@@ -65,10 +66,11 @@ func (i *TravelInteractor) Register(ctx context.Context, members domain.Members,
 			member_travel_list = append(member_travel_list, member_travel)
 		}
 
-		// err = i.MemberTravelRepository.StoreList(ctx, member_travel_list)
-		// if err != nil {
-		// 	return "", err
-		// }
+		fmt.Println(member_travel_list)
+		err = i.MemberTravelRepository.StoreList(ctx, member_travel_list)
+		if err != nil {
+			return "", err
+		}
 
 		return "", err
 	})
