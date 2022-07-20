@@ -26,6 +26,6 @@ RUN GOOS=linux GOARCH=amd64 go build -o /main .
 
 FROM alpine:latest
 
-COPY --from=builder /main /
+COPY --from=builder /main ./
 
 CMD /main $PORT
