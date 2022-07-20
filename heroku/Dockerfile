@@ -17,9 +17,15 @@ RUN apt-get update \
 
 RUN GOOS=linux GOARCH=amd64 go build -o /main .
 
-FROM scratch
+# FROM scratch
 
-COPY --from=builder /main ./
+# COPY --from=builder /main ./
 
-ENV PORT=${PORT}
-ENTRYPOINT ["./main"]
+# ENV PORT=${PORT}
+# ENTRYPOINT ["./main"]
+
+FROM alpine:latest
+
+COPY --from=builder /main /main
+
+CMD /main $PORT
