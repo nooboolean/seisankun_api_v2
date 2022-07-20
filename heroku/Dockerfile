@@ -21,4 +21,4 @@ FROM alpine:latest
 
 COPY --from=builder /main .
 
-CMD /main
+CMD /main web
