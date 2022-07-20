@@ -8,3 +8,5 @@ release:
   image: app
   command:
     - cd db/migrations && goose up
+run:
+  web: /main

@@ -22,4 +22,4 @@ FROM alpine:latest
 COPY --from=builder /main .
 
 ENV PORT=${PORT}
-CMD /main
+ENTRYPOINT ["/main"]
