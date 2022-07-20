@@ -1,0 +1,1 @@
+web: bin/seisankun_api_v2/app
