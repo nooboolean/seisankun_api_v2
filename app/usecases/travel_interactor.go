@@ -2,7 +2,6 @@ package usecases
 
 import (
 	"context"
-	"fmt"
 
 	"github.com/nooboolean/seisankun_api_v2/domain"
 	"github.com/nooboolean/seisankun_api_v2/interfaces/repositories"
@@ -47,33 +46,24 @@ func (i *TravelInteractor) Get(travel_key string) (travel domain.Travel, members
 func (i *TravelInteractor) Register(ctx context.Context, members domain.Members, travel domain.Travel) (travel_key string, err error) {
 	travel.TravelKey = xid.New().String()
 	_, err = i.Transaction.DoInTx(ctx, func(ctx context.Context) (interface{}, error) {
-		err = i.TravelRepository.Store(ctx, &travel)
-		travel_key = travel.TravelKey
+		created_travel, err := i.TravelRepository.Store(ctx, &travel)
+		travel_key = created_travel.TravelKey
 		if err != nil {
 			return "", err
 		}
-		err = i.MemberRepository.StoreMembers(ctx, members)
+		created_members, err := i.MemberRepository.StoreMembers(ctx, members)
 		if err != nil {
 			return "", err
 		}
 
-		member_travel_list := make(domain.MemberTravelList, 0, len(members))
-		for _, member := range members {
+		member_travel_list := make(domain.MemberTravelList, 0, len(created_members))
+		for _, created_member := range created_members {
 			member_travel := domain.MemberTravel{
-				MemberId: int(member.ID),
-				TravelId: int(travel.ID),
+				MemberId: int(created_member.ID),
+				TravelId: int(created_travel.ID),
 			}
 			member_travel_list = append(member_travel_list, member_travel)
 		}
-
-		test_travel, err := i.TravelRepository.FindById(int(travel.ID))
-		fmt.Println("トラベル")
-		fmt.Println(test_travel)
-		test_members, err := i.MemberRepository.FindByTravelKey(travel.TravelKey)
-		fmt.Println("メンバーズ")
-		fmt.Println(test_members)
-		fmt.Println("中間テーブ")
-		fmt.Println(member_travel_list)
 		err = i.MemberTravelRepository.StoreList(ctx, member_travel_list)
 		if err != nil {
 			return "", err

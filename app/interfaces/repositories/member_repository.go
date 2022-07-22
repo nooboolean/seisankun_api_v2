@@ -70,12 +70,12 @@ func (r *MemberRepository) FindByPaymentId(payment_id int) (members domain.Membe
 	return
 }
 
-func (r *MemberRepository) StoreMembers(ctx context.Context, members domain.Members) (err error) {
+func (r *MemberRepository) StoreMembers(ctx context.Context, members domain.Members) (created_members domain.Members, err error) {
 	db, ok := GetTx(ctx)
 	if ok {
-		err = db.Create(&members).Error
+		err = db.Create(&members).Scan(&created_members).Error
 	} else {
-		err = r.Db.Create(&members).Error
+		err = r.Db.Create(&members).Scan(&created_members).Error
 	}
 
 	if err != nil {
