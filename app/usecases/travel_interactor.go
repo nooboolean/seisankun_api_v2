@@ -66,6 +66,13 @@ func (i *TravelInteractor) Register(ctx context.Context, members domain.Members,
 			member_travel_list = append(member_travel_list, member_travel)
 		}
 
+		test_travel, err := i.TravelRepository.FindById(int(travel.ID))
+		fmt.Println("トラベル")
+		fmt.Println(test_travel)
+		test_members, err := i.MemberRepository.FindByTravelKey(travel.TravelKey)
+		fmt.Println("メンバーズ")
+		fmt.Println(test_members)
+		fmt.Println("中間テーブ")
 		fmt.Println(member_travel_list)
 		err = i.MemberTravelRepository.StoreList(ctx, member_travel_list)
 		if err != nil {
