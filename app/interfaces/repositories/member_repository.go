@@ -73,10 +73,12 @@ func (r *MemberRepository) FindByPaymentId(payment_id int) (members domain.Membe
 func (r *MemberRepository) StoreMembers(ctx context.Context, members domain.Members) (created_members domain.Members, err error) {
 	db, ok := GetTx(ctx)
 	if ok {
-		err = db.Create(&members).Scan(&created_members).Error
+		err = db.Create(&members).Error
 	} else {
-		err = r.Db.Create(&members).Scan(&created_members).Error
+		err = r.Db.Create(&members).Error
 	}
+
+	created_members = members
 
 	if err != nil {
 		err = domain.Errorf(codes.Database, "Failed to create member  - %s", err)

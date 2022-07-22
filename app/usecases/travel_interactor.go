@@ -46,7 +46,7 @@ func (i *TravelInteractor) Get(travel_key string) (travel domain.Travel, members
 func (i *TravelInteractor) Register(ctx context.Context, members domain.Members, travel domain.Travel) (travel_key string, err error) {
 	travel.TravelKey = xid.New().String()
 	_, err = i.Transaction.DoInTx(ctx, func(ctx context.Context) (interface{}, error) {
-		created_travel, err := i.TravelRepository.Store(ctx, &travel)
+		created_travel, err := i.TravelRepository.Store(ctx, travel)
 		travel_key = created_travel.TravelKey
 		if err != nil {
 			return "", err

@@ -38,13 +38,15 @@ func (r *TravelRepository) FindById(id int) (travel domain.Travel, err error) {
 	return
 }
 
-func (r *TravelRepository) Store(ctx context.Context, travel *domain.Travel) (created_travel domain.Travel, err error) {
+func (r *TravelRepository) Store(ctx context.Context, travel domain.Travel) (created_travel domain.Travel, err error) {
 	db, ok := GetTx(ctx)
 	if ok {
-		err = db.Create(&travel).Scan(&created_travel).Error
+		err = db.Create(&travel).Error
 	} else {
-		err = r.Db.Create(&travel).Scan(&created_travel).Error
+		err = r.Db.Create(&travel).Error
 	}
+
+	created_travel = travel
 	if err != nil {
 		err = domain.Errorf(codes.Database, "Failed to create travel  - %s", err)
 		return
