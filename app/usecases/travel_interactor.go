@@ -2,7 +2,6 @@ package usecases
 
 import (
 	"context"
-	"fmt"
 
 	"github.com/nooboolean/seisankun_api_v2/domain"
 	"github.com/nooboolean/seisankun_api_v2/interfaces/repositories"
@@ -57,24 +56,16 @@ func (i *TravelInteractor) Register(ctx context.Context, members domain.Members,
 			return "", err
 		}
 
-		fmt.Println(created_members)
-		member_travel_list := make(domain.MemberTravelList, 0, len(created_members))
-		for i := 0; i < len(created_members); i++ {
-			member_travel_list = append(member_travel_list, domain.MemberTravel{
-				MemberId: int(created_members[i].ID),
+		// member_travel_list := make(domain.MemberTravelList, 0, len(created_members))
+		for _, created_member := range created_members {
+			member_travel := domain.MemberTravel{
+				MemberId: int(created_member.ID),
 				TravelId: int(created_travel.ID),
-			})
+			}
+			// member_travel_list = append(member_travel_list, member_travel)
+			err = i.MemberTravelRepository.Store(ctx, member_travel)
 		}
-		// for _, created_member := range created_members {
-		// 	member_travel := domain.MemberTravel{
-		// 		MemberId: int(created_member.ID),
-		// 		TravelId: int(created_travel.ID),
-		// 	}
-		// 	member_travel_list = append(member_travel_list, member_travel)
-		// }
-		fmt.Println("member_travel_listの確認")
-		fmt.Println(member_travel_list)
-		err = i.MemberTravelRepository.StoreList(ctx, member_travel_list)
+		// err = i.MemberTravelRepository.StoreList(ctx, member_travel_list)
 		if err != nil {
 			return "", err
 		}
