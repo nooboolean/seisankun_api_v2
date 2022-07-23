@@ -2,7 +2,6 @@ package usecases
 
 import (
 	"context"
-	"time"
 
 	"github.com/nooboolean/seisankun_api_v2/domain"
 	"github.com/nooboolean/seisankun_api_v2/interfaces/repositories"
@@ -56,7 +55,7 @@ func (i *TravelInteractor) Register(ctx context.Context, members domain.Members,
 		if err != nil {
 			return "", err
 		}
-		time.Sleep(time.Second * 3)
+
 		member_travel_list := make(domain.MemberTravelList, 0, len(created_members))
 		for _, created_member := range created_members {
 			member_travel := domain.MemberTravel{
