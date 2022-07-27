@@ -10,8 +10,8 @@ type Travel struct {
 	TravelKey        string           `gorm:"not null" json:"travel_key"`
 	MemberTravelList MemberTravelList `gorm:"foreignKey:TravelId;references:ID" json:"member_travel_list,omitempty"`
 	Payments         Payments         `gorm:"foreignKey:TravelId;references:ID" json:"payments,omitempty"`
-	CreatedAt        time.Time
-	UpdatedAt        time.Time
+	CreatedAt        time.Time        `json:"created_at"`
+	UpdatedAt        time.Time        `json:"updated_at"`
 }
 
 func (Travel) TableName() string {
