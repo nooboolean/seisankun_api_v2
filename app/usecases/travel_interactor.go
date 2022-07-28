@@ -64,7 +64,6 @@ func (i *TravelInteractor) Register(ctx context.Context, members domain.Members,
 			}
 			member_travel_list = append(member_travel_list, member_travel)
 		}
-
 		err = i.MemberTravelRepository.StoreList(ctx, member_travel_list)
 		if err != nil {
 			return "", err
