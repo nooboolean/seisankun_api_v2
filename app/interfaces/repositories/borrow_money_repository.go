@@ -32,7 +32,7 @@ func (r *BorrowMoneyRepository) FindByPayments(payments domain.Payments) (borrow
 }
 
 func (r *BorrowMoneyRepository) FindByMemberIdWithPayment(member_id int) (borrow_money_list domain.BorrowMoneyList, err error) {
-	if err = r.Db.Preload("Payment").Where("borrower_id = ?", member_id).Find(&borrow_money_list).Error; err != nil {
+	if err = r.Db.Preload("Payment.Member").Where("borrower_id = ?", member_id).Find(&borrow_money_list).Error; err != nil {
 		err = domain.Errorf(codes.Database, "Failed to find borrow_money  - %s", err)
 		return
 	}

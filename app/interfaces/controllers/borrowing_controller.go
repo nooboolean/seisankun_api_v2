@@ -89,7 +89,7 @@ func (controller *borrowingController) Index(c *gin.Context) {
 	}
 	for _, borrow_money := range borrow_money_list {
 		borrow := responses.Borrow{Title: borrow_money.Payment.Title, Money: borrow_money.Money, PaymentId: int(borrow_money.Payment.ID)}
-		histories = append(histories, responses.History{Borrow: borrow, Member: response_member})
+		histories = append(histories, responses.History{Borrow: borrow, Member: responses.Member{Name: borrow_money.Payment.Member.Name}})
 	}
 	response := responses.BorrowingIndexResponse{Histories: histories}
 
