@@ -1,15 +1,22 @@
 package responses
 
 type BorrowingIndexResponse struct {
-	Histories Histories `json:"histories" binding:"required,dive"`
+	LendHistories   LendHistories   `json:"lend_histories" binding:"required,dive"`
+	BorrowHistories BorrowHistories `json:"borrow_histories" binding:"required,dive"`
 }
 
-type Histories []History
+type LendHistories []LendHistory
 
-type History struct {
-	Lend   Lend   `json:"lend,omitempty"`
+type LendHistory struct {
+	Lend  Lend  `json:"lend,omitempty"`
+	Payer Payer `json:"payer"`
+}
+
+type BorrowHistories []BorrowHistory
+
+type BorrowHistory struct {
 	Borrow Borrow `json:"borrow,omitempty"`
-	Member Member `json:"member"`
+	Payer  Payer  `json:"payer"`
 }
 
 type Lend struct {
@@ -24,6 +31,6 @@ type Borrow struct {
 	PaymentId int     `json:"payment_id"`
 }
 
-type Member struct {
+type Payer struct {
 	Name string `json:"name"`
 }
